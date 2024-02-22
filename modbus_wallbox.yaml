@@ -8,7 +8,6 @@ modbus:
     type: tcp
     host: !secret wallbox_modbus_host_ip
     port: !secret wallbox_modbus_port
-    retries: 10
     sensors:
       - name: Wallbox device type code
         unique_id: wb1_dev_number_raw
@@ -175,7 +174,7 @@ modbus:
         state_class: total_increasing
         scale: 1
         swap: word
-        scan_interval: 600 
+        scan_interval: 600
 
       - name: Charging status Raw
         unique_id: wb1_charging_status
@@ -184,7 +183,7 @@ modbus:
         input_type: input
         data_type: uint16
         scan_interval: 10
-      
+
       - name: Charging start time Raw
         unique_id: wb1_charging_start_time_raw
         slave: !secret wallbox_modbus_slave
@@ -193,7 +192,7 @@ modbus:
         data_type: uint32
         swap: word
         scan_interval: 600
-      
+
       - name: Charging end time Raw
         unique_id: wb1_charging_end_time_raw
         slave: !secret wallbox_modbus_slave
@@ -280,11 +279,10 @@ template:
         unique_id: wb1_charged_range
         state: >
           {{ (((states.sensor.charging_energy.state | int) * (states.sensor.mileage_per_kwh.state | int) / 1000) | round(1))}} km
-  
+
       - name: Wallbox device type
         unique_id: wb1_device_type
-        availability:
-          "{{states('sensor.wallbox_device_type_code')|is_number}}"
+        availability: "{{states('sensor.wallbox_device_type_code')|is_number}}"
         state: >-
           {% if ((states('sensor.wallbox_device_type_code') | int(default=0))  == 0x20ED) %}
             AC007-00
@@ -293,11 +291,10 @@ template:
           {% else %}
             Unknown device code!
           {% endif %}
-      
+
       - name: Wallbox working mode
         unique_id: wb1_working_mode
-        availability:
-          "{{states('sensor.working_mode')|is_number}}"
+        availability: "{{states('sensor.working_mode')|is_number}}"
         state: >-
           {% if ((states('sensor.working_mode') | int(default=0))  == 0) %}
             Network
@@ -308,11 +305,10 @@ template:
           {% else %}
             Unknown working mode!
           {% endif %}
-        
+
       - name: Phase switching status
         unique_id: wb1_phase_switching_status
-        availability:
-          "{{states('sensor.phase_switching_status_raw')|is_number}}"
+        availability: "{{states('sensor.phase_switching_status_raw')|is_number}}"
         state: >-
           {% if ((states('sensor.phase_switching_status_raw') | int(default=0))  == 0) %}
             Three-phase
@@ -324,8 +320,7 @@ template:
 
       - name: Charging status
         unique_id: wb1_charging_status
-        availability:
-          "{{states('sensor.charging_status_raw')|is_number}}"
+        availability: "{{states('sensor.charging_status_raw')|is_number}}"
         state: >-
           {% if ((states('sensor.charging_status_raw') | int(default=0))  == 1) %}
             Idle
@@ -370,13 +365,13 @@ input_select:
     options:
       - "Three phase"
       - "Single phase"
-  
+
   set_wb_charger_enable:
     name: Charger enable
     options:
       - "Disable"
       - "Enable"
-  
+
   set_wb_remote_control:
     name: Remote control
     options:
@@ -440,7 +435,7 @@ automation:
               {{single_phase}}
             {% endif %}
     mode: single
-  
+
   - id: "automation_wallbox_charger_enable_cmd"
     alias: "wallbox charger enable cmd"
     description: "Switch wallbox operation mode between enabled and disabled"
@@ -465,7 +460,7 @@ automation:
               {{enable}}
             {% endif %}
     mode: single
-  
+
   - id: "automation_wallbox_remote_control_cmd"
     alias: "wallbox charger remote control cmd"
     description: "Remote control wallbox"
@@ -489,6 +484,36 @@ automation:
             {% elif is_state('input_select.set_wb_remote_control', "Stop charging") %} 
               {{stop_charging}}
             {% endif %}
+    mode: single
+
+  - id: "automation_wallbox_reset_remote_control_cmd"
+    alias: "wallbox charger reset remote control cmd"
+    description: "Reset remote control wallbox when unplugged"
+    trigger:
+      - platform: state
+        entity_id:
+          - sensor.charging_status_raw
+        to: "1"
+    condition: []
+    action:
+      - delay: "00:00:10"
+      - service: input_select.select_last
+        entity: input_select.set_wb_remote_control
+    mode: single
+
+  - id: "automation_wallbox_start_on_plug_in"
+    alias: "wallbox charger start on plug in"
+    description: "Automatically start charging when plugged in"
+    trigger:
+      - platform: state
+        entity_id:
+          - sensor.charging_status_raw
+        to: "2"
+    condition: []
+    action:
+      - delay: "00:00:10"
+      - service: input_select.select_first
+        entity: input_select.set_wb_remote_control
     mode: single
 
   - id: "automation_fast_update_while_charging"

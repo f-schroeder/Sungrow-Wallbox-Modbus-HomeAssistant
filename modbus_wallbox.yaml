@@ -498,7 +498,7 @@ automation:
     action:
       - delay: "00:00:10"
       - service: input_select.select_last
-        entity: input_select.set_wb_remote_control
+        entity_id: input_select.set_wb_remote_control
     mode: single
 
   - id: "automation_wallbox_start_on_plug_in"
@@ -513,7 +513,7 @@ automation:
     action:
       - delay: "00:00:10"
       - service: input_select.select_first
-        entity: input_select.set_wb_remote_control
+        entity_id: input_select.set_wb_remote_control
     mode: single
 
   - id: "automation_fast_update_while_charging"

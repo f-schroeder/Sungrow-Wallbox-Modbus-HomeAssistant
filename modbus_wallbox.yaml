@@ -456,7 +456,7 @@ automation:
           value: >
             {% if is_state('input_select.set_wb_charger_enable', "Disable") %} 
               {{disable}}
-            {% elif is_state('input_select.set_wb_phase_switch', "Enable") %} 
+            {% elif is_state('input_select.set_wb_charger_enable', "Enable") %} 
               {{enable}}
             {% endif %}
     mode: single
